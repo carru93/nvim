@@ -11,8 +11,6 @@ return {
 		"williamboman/mason-lspconfig.nvim",
 		dependencies = { "neovim/nvim-lspconfig" },
 		config = function()
-			local lspconfig = require("lspconfig")
-
 			-- Capabilities (compatibile con nvim-cmp se lo aggiungerai)
 			local capabilities = vim.lsp.protocol.make_client_capabilities()
 			local ok_cmp, cmp_caps = pcall(require, "cmp_nvim_lsp")
@@ -41,7 +39,7 @@ return {
 			end
 
 			-- vtsls (JS/TS) - alternativa moderna a tsserver
-			lspconfig.vtsls.setup({
+			vim.lsp.config("vtsls", {
 				capabilities = capabilities,
 				on_attach = on_attach,
 				-- settings opzionali:
@@ -57,11 +55,12 @@ return {
 					},
 				},
 				-- Evita di attivarlo in progetti Deno
-				root_dir = lspconfig.util.root_pattern("package.json", "tsconfig.json", "jsconfig.json", ".git"),
+				root_markers = { "package.json", "tsconfig.json", "jsconfig.json", ".git" },
 			})
+			vim.lsp.enable("vtsls")
 
 			-- ESLint LSP: per diagnostics e code actions (non formattazione)
-			lspconfig.eslint.setup({
+			vim.lsp.config("eslint", {
 				capabilities = capabilities,
 				on_attach = on_attach,
 				settings = {
@@ -69,18 +68,21 @@ return {
 					codeAction = { showDocumentation = { enable = true } },
 				},
 			})
+			vim.lsp.enable("eslint")
 
 			-- Go
-			lspconfig.gopls.setup({
+			vim.lsp.config("gopls", {
 				capabilities = capabilities,
 				on_attach = on_attach,
 			})
+			vim.lsp.enable("gopls")
 
 			-- C/C++
-			lspconfig.clangd.setup({
+			vim.lsp.config("clangd", {
 				capabilities = capabilities,
 				on_attach = on_attach,
 			})
+			vim.lsp.enable("clangd")
 		end,
 	},
 
