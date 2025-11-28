@@ -79,6 +79,7 @@ return {
 
 			-- C/C++
 			vim.lsp.config("clangd", {
+				cmd = { "clangd", "--background-index" },
 				capabilities = capabilities,
 				on_attach = on_attach,
 			})
