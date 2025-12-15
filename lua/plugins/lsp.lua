@@ -28,6 +28,7 @@ return {
 				map("n", "gd", vim.lsp.buf.definition, "LSP: Go to Definition")
 				map("n", "gr", vim.lsp.buf.references, "LSP: References")
 				map("n", "K", vim.lsp.buf.hover, "LSP: Hover")
+				map("n", "<leader>H", vim.lsp.buf.hover, "LSP: Signature help")
 				map("n", "<leader>rn", vim.lsp.buf.rename, "LSP: Rename")
 				map({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, "LSP: Code Action")
 
