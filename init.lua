@@ -77,6 +77,7 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 })
 
 -- Set colorscheme
+vim.opt.termguicolors = true
 vim.cmd.colorscheme("catppuccin-frappe")
 
 -- Indenting
