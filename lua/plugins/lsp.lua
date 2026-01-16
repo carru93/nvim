@@ -33,19 +33,38 @@ return {
 				map({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, "LSP: Code Action")
 
 				-- Disabilita la formattazione via LSP: useremo conform.nvim
-				if client.name == "vtsls" or client.name == "tsserver" or client.name == "eslint" then
+				if client.name == "vtsls" or client.name == "ts_ls" or client.name == "eslint" then
 					client.server_capabilities.documentFormattingProvider = false
 					client.server_capabilities.documentRangeFormattingProvider = false
 				end
 			end
 
-			-- vtsls (JS/TS) - alternativa moderna a tsserver
+			local vue_language_server_path = nil
+			do
+				local mason_packages = vim.fn.stdpath("data") .. "/mason/packages"
+				local candidate = mason_packages .. "/vue-language-server/node_modules/@vue/language-server"
+
+				if (vim.uv or vim.loop).fs_stat(candidate) then
+					vue_language_server_path = candidate
+				end
+			end
+
+			local vtsls_plugins = {}
+			if vue_language_server_path then
+				table.insert(vtsls_plugins, {
+					name = "@vue/typescript-plugin",
+					location = vue_language_server_path,
+					languages = { "vue" },
+					configNamespace = "typescript",
+					enableForWorkspaceTypeScriptVersions = true,
+				})
+			end
+
 			vim.lsp.config("vtsls", {
 				capabilities = capabilities,
 				on_attach = on_attach,
-				-- settings opzionali:
+				filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
 				settings = {
-					-- Tipiche preferenze TS/JS (metti le tue se vuoi)
 					javascript = {
 						format = { enable = false },
 						suggestionActions = { enabled = false },
@@ -54,59 +73,95 @@ return {
 					typescript = {
 						suggestionActions = { enabled = false },
 					},
+					vtsls = {
+						tsserver = {
+							globalPlugins = vtsls_plugins,
+						},
+					},
 				},
-				-- Evita di attivarlo in progetti Deno
 				root_markers = { "package.json", "tsconfig.json", "jsconfig.json", ".git" },
 			})
-			vim.lsp.enable("vtsls")
+
+			vim.lsp.config("vue_ls", {
+				capabilities = capabilities,
+				on_attach = on_attach,
+				init_options = {
+					vue = { hybridMode = true },
+				},
+			})
+
+			vim.lsp.enable({ "vtsls", "vue_ls" })
 
 			-- ESLint LSP: per diagnostics e code actions (non formattazione)
 			vim.lsp.config("eslint", {
 				capabilities = capabilities,
 				on_attach = on_attach,
 				settings = {
+					format = false,
 					workingDirectory = { mode = "auto" },
 					codeAction = { showDocumentation = { enable = true } },
 				},
 			})
 			vim.lsp.enable("eslint")
 
-			-- Go
-			vim.lsp.config("gopls", {
-				capabilities = capabilities,
-				on_attach = on_attach,
-			})
+			vim.lsp.config("gopls", { capabilities = capabilities, on_attach = on_attach })
 			vim.lsp.enable("gopls")
 
-			-- C/C++
-			vim.lsp.config("clangd", {
-				cmd = { "clangd", "--background-index" },
+			vim.lsp.config(
+				"clangd",
+				{ cmd = { "clangd", "--background-index" }, capabilities = capabilities, on_attach = on_attach }
+			)
+			vim.lsp.enable("clangd")
+
+			vim.lsp.config("pyright", {
 				capabilities = capabilities,
 				on_attach = on_attach,
+				settings = {
+					python = {
+						analysis = {
+							autoSearchPaths = true,
+							diagnosticMode = "workspace",
+							useLibraryCodeForTypes = true,
+						},
+					},
+				},
 			})
-			vim.lsp.enable("clangd")
+			vim.lsp.enable("pyright")
+
+			vim.lsp.config("ruff", {
+				capabilities = capabilities,
+				on_attach = function(client, bufnr)
+					client.server_capabilities.hoverProvider = false
+					on_attach(client, bufnr)
+					vim.keymap.set(
+						"n",
+						"<leader>co",
+						vim.lsp.buf.code_action,
+						{ buffer = bufnr, desc = "Organize Imports" }
+					)
+				end,
+			})
+			vim.lsp.enable("ruff")
 		end,
 	},
 
-	-- Installer automatico per i binari esterni
+	-- Installer automatico
 	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
 		dependencies = { "williamboman/mason.nvim" },
 		config = function()
 			require("mason-tool-installer").setup({
 				ensure_installed = {
-					-- LSP
 					"vtsls",
 					"eslint-lsp",
 					"gopls",
 					"clangd",
-					-- Formatter & tools
+					"pyright",
+					"ruff",
+					"vue-language-server",
 					"eslint_d",
 					"prettierd",
 					"stylua",
-					"clang-format",
-					"goimports",
-					"gofumpt",
 				},
 				run_on_start = true,
 			})

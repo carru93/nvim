@@ -47,6 +47,9 @@ return {
 			yaml = { "prettierd" },
 			markdown = { "prettierd" },
 			lua = { "stylua" },
+			python = { "isort", "ruff_format", "ruff_fix" },
+			vue = { "prettierd" },
+			css = { "prettierd" },
 		},
 	},
 }
