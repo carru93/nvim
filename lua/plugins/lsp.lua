@@ -39,31 +39,6 @@ return {
 				end
 			end
 
-			local vue_ts_plugin_path
-			do
-				local base = vim.fn.stdpath("data") .. "/mason/packages/vue-language-server/node_modules/@vue"
-				local p1 = base .. "/typescript-plugin"
-				local p2 = base .. "/language-server"
-				local uv = vim.uv or vim.loop
-
-				if uv.fs_stat(p1) then
-					vue_ts_plugin_path = p1
-				elseif uv.fs_stat(p2) then
-					vue_ts_plugin_path = p2
-				end
-			end
-
-			local vtsls_plugins = {}
-			if vue_ts_plugin_path then
-				table.insert(vtsls_plugins, {
-					name = "@vue/typescript-plugin",
-					location = vue_ts_plugin_path,
-					languages = { "vue" },
-					configNamespace = "typescript",
-					enableForWorkspaceTypeScriptVersions = true,
-				})
-			end
-
 			vim.lsp.config("vtsls", {
 				capabilities = capabilities,
 				on_attach = on_attach,
@@ -76,14 +51,10 @@ return {
 					},
 					typescript = {
 						suggestionActions = { enabled = false },
-						tsserver = {
-							maxTsServerMemory = 8192,
-						},
 					},
 					vtsls = {
 						tsserver = {
 							autoUseWorkspaceTsdk = true,
-							globalPlugins = vtsls_plugins,
 						},
 					},
 				},
