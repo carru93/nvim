@@ -17,6 +17,17 @@ return {
 			if ok_cmp then
 				capabilities = cmp_caps.default_capabilities(capabilities)
 			end
+			capabilities.textDocument.semanticTokens = nil
+
+			local function find_ts_root(bufnr)
+				return vim.fs.root(bufnr, { "tsconfig.json", "jsconfig.json", "package.json" })
+			end
+
+			local ts_root_markers = {
+				"tsconfig.json",
+				"jsconfig.json",
+				"package.json",
+			}
 
 			-- Attacchi comuni (keymap base e disabilitare formatting per evitare conflitti)
 			local on_attach = function(client, bufnr)
@@ -33,16 +44,71 @@ return {
 				map({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, "LSP: Code Action")
 
 				-- Disabilita la formattazione via LSP: useremo conform.nvim
-				if client.name == "vtsls" or client.name == "ts_ls" or client.name == "eslint" then
+				if client.name == "ts_ls" or client.name == "eslint" then
 					client.server_capabilities.documentFormattingProvider = false
 					client.server_capabilities.documentRangeFormattingProvider = false
 				end
+
+				if client.name == "ts_ls" or client.name == "vue_ls" then
+					client.server_capabilities.semanticTokensProvider = nil
+					client.server_capabilities.codeLensProvider = false
+				end
 			end
 
-			vim.lsp.config("vtsls", {
+			local vue_ts_plugin
+			do
+				local base = vim.fn.stdpath("data") .. "/mason/packages/vue-language-server/node_modules/@vue"
+				local p1 = base .. "/typescript-plugin"
+				local p2 = base .. "/language-server"
+				local uv = vim.uv or vim.loop
+
+				if uv.fs_stat(p1) then
+					vue_ts_plugin = {
+						name = "@vue/typescript-plugin",
+						location = p1,
+						languages = { "vue" },
+					}
+				elseif uv.fs_stat(p2) then
+					vue_ts_plugin = {
+						name = "@vue/typescript-plugin",
+						location = p2,
+						languages = { "vue" },
+					}
+				end
+			end
+
+			local ts_plugins = {}
+			if vue_ts_plugin then
+				table.insert(ts_plugins, vue_ts_plugin)
+			end
+
+			vim.lsp.config("ts_ls", {
 				capabilities = capabilities,
 				on_attach = on_attach,
 				filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
+				root_markers = ts_root_markers,
+				root_dir = function(bufnr, on_dir)
+					local root = find_ts_root(bufnr)
+					if root then
+						on_dir(root)
+					end
+				end,
+				single_file_support = false,
+				flags = { debounce_text_changes = 300 },
+				init_options = {
+					hostInfo = "neovim",
+					disableAutomaticTypingAcquisition = true,
+					maxTsServerMemory = 3072,
+					plugins = ts_plugins,
+					tsserver = {
+						useSyntaxServer = "never",
+					},
+					preferences = {
+						includeCompletionsForModuleExports = false,
+						includeCompletionsForImportStatements = false,
+						includePackageJsonAutoImports = "off",
+					},
+				},
 				settings = {
 					javascript = {
 						format = { enable = false },
@@ -52,24 +118,25 @@ return {
 					typescript = {
 						suggestionActions = { enabled = false },
 					},
-					vtsls = {
-						tsserver = {
-							autoUseWorkspaceTsdk = true,
-						},
-					},
 				},
-				root_markers = { "package.json", "tsconfig.json", "jsconfig.json", ".git" },
 			})
 
 			vim.lsp.config("vue_ls", {
 				capabilities = capabilities,
 				on_attach = on_attach,
+				root_markers = ts_root_markers,
+				root_dir = function(bufnr, on_dir)
+					local root = find_ts_root(bufnr)
+					if root then
+						on_dir(root)
+					end
+				end,
 				init_options = {
 					vue = { hybridMode = true },
 				},
 			})
 
-			vim.lsp.enable({ "vtsls", "vue_ls" })
+			vim.lsp.enable({ "ts_ls", "vue_ls" })
 
 			-- ESLint LSP: per diagnostics e code actions (non formattazione)
 			vim.lsp.config("eslint", {
@@ -131,7 +198,7 @@ return {
 		config = function()
 			require("mason-tool-installer").setup({
 				ensure_installed = {
-					"vtsls",
+					"typescript-language-server",
 					"eslint-lsp",
 					"gopls",
 					"clangd",
