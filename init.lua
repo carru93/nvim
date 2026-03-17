@@ -157,3 +157,10 @@ vim.keymap.set("n", "<leader>m", function()
 		vim.notify("Fold method set to Indent", vim.log.levels.INFO)
 	end
 end, { desc = "Toggle foldmethod between treesitter and indent" })
+
+-- Copy path of the file
+vim.keymap.set("n", "<leader>cp", function()
+	local path = vim.fn.expand("%:.")
+	vim.fn.setreg("+", path)
+	print("Copied: " .. path)
+end, { desc = "Copy file path" })
