@@ -17,7 +17,75 @@ return {
 			local telescope = require("telescope")
 			local builtin = require("telescope.builtin")
 			local actions = require("telescope.actions")
+			local conf = require("telescope.config").values
+			local finders = require("telescope.finders")
+			local make_entry = require("telescope.make_entry")
+			local pickers = require("telescope.pickers")
+			local sorters = require("telescope.sorters")
 			local trouble = require("trouble.sources.telescope")
+
+			local function glob_escape(text)
+				return (text:gsub("([%*%?%[%]%{%}!\\])", "\\%1"))
+			end
+
+			local function split_prompt_and_path_filter(prompt)
+				local separator = " -- "
+				local index = prompt:find(separator, 1, true)
+				if not index then
+					return prompt, nil
+				end
+
+				local search = vim.trim(prompt:sub(1, index - 1))
+				local path_filter = vim.trim(prompt:sub(index + #separator))
+				return search, path_filter ~= "" and path_filter or nil
+			end
+
+			local function path_contains_globs(filter)
+				local escaped = glob_escape(vim.trim(filter))
+				if escaped == "" then
+					return nil
+				end
+
+				return {
+					"**/*" .. escaped .. "*",
+					"**/*" .. escaped .. "*/**",
+				}
+			end
+
+			local function live_grep_with_path_filter()
+				pickers
+					.new({}, {
+						prompt_title = "Live Grep",
+						finder = finders.new_job(function(prompt)
+							if not prompt or prompt == "" then
+								return nil
+							end
+
+							local search_prompt, path_filter = split_prompt_and_path_filter(prompt)
+							search_prompt = vim.trim(search_prompt)
+
+							if search_prompt == "" then
+								return nil
+							end
+
+							local args = vim.deepcopy(conf.vimgrep_arguments)
+							if path_filter then
+								for _, glob in ipairs(path_contains_globs(path_filter)) do
+									args[#args + 1] = "--iglob=" .. glob
+								end
+							end
+
+							return vim.list_extend(args, { "--", search_prompt })
+						end, make_entry.gen_from_vimgrep({}), nil, nil),
+						previewer = conf.grep_previewer({}),
+						sorter = sorters.highlighter_only({}),
+						attach_mappings = function(_, map)
+							map("i", "<C-space>", actions.to_fuzzy_refine)
+							return true
+						end,
+					})
+					:find()
+			end
 
 			telescope.setup({
 				defaults = {
@@ -61,7 +129,7 @@ return {
 			vim.keymap.set("n", "<leader>sf", builtin.find_files, { desc = "[S]earch [F]iles" })
 			vim.keymap.set("n", "<leader>ss", builtin.builtin, { desc = "[S]earch [S]elect Telescope" })
 			vim.keymap.set("n", "<leader>sw", builtin.grep_string, { desc = "[S]earch current [W]ord" })
-			vim.keymap.set("n", "<leader>sg", builtin.live_grep, { desc = "[S]earch by [G]rep" })
+			vim.keymap.set("n", "<leader>sg", live_grep_with_path_filter, { desc = "[S]earch by [G]rep" })
 			vim.keymap.set("n", "<leader>sd", builtin.diagnostics, { desc = "[S]earch [D]iagnostics" })
 			vim.keymap.set("n", "<leader>sr", builtin.resume, { desc = "[S]earch [R]esume" })
 			vim.keymap.set("n", "<leader>st", builtin.git_files, { desc = "[S]earch Gi[t]" })
