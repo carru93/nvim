@@ -9,6 +9,12 @@ return {
 		},
 		config = function()
 			vim.keymap.set("n", "<leader>e", "<Cmd>Neotree toggle<CR>", { desc = "Toggle [E]xplorer (nvim-tree)" })
+			vim.keymap.set("n", "<leader>cf", function()
+				local path = vim.fn.expand("%:.")
+				vim.cmd("Neotree reveal")
+
+				vim.notify(path, vim.log.levels.INFO, { title = "Current file" })
+			end, { desc = "Show [C]urrent [F] in explorer (nvim-tree)" })
 			require("neo-tree").setup({
 				enable_git_status = true,
 				enable_diagnostics = true,
