@@ -39,13 +39,19 @@ return {
 			})
 		end,
 	},
-
 	{
 		"nvim-treesitter/nvim-treesitter-textobjects",
 		branch = "main",
 		dependencies = { "nvim-treesitter/nvim-treesitter" },
 	},
-
+	{
+		"nvim-treesitter/nvim-treesitter-context",
+		opts = {
+			enable = true,
+			max_lines = 6,
+			multiline_threshold = 1,
+		},
+	},
 	{
 		"windwp/nvim-ts-autotag",
 		dependencies = { "nvim-treesitter/nvim-treesitter" },
