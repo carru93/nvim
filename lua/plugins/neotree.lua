@@ -9,6 +9,12 @@ return {
 		},
 		config = function()
 			vim.keymap.set("n", "<leader>e", "<Cmd>Neotree toggle<CR>", { desc = "Toggle [E]xplorer (nvim-tree)" })
+			vim.keymap.set(
+				"n",
+				"<leader>gs",
+				"<Cmd>Neotree git_status toggle left<CR>",
+				{ desc = "Toggle [G]it [S]tatus sidebar (neo-tree)" }
+			)
 			vim.keymap.set("n", "<leader>cf", function()
 				local path = vim.fn.expand("%:.")
 				vim.cmd("Neotree reveal")
