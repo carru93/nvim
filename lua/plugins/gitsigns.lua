@@ -12,6 +12,28 @@ return {
 	},
 	config = function()
 		local gitsigns = require("gitsigns")
+		local diff_state = { base_win = nil }
+
+		local function toggle_side_by_side_diff()
+			if diff_state.base_win and vim.api.nvim_win_is_valid(diff_state.base_win) then
+				local base_win = diff_state.base_win
+				vim.api.nvim_set_current_win(base_win)
+
+				for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+					if win ~= base_win and vim.wo[win].diff then
+						vim.api.nvim_win_close(win, true)
+					end
+				end
+
+				vim.wo[base_win].diff = false
+				diff_state.base_win = nil
+				return
+			end
+
+			diff_state.base_win = vim.api.nvim_get_current_win()
+			gitsigns.diffthis("HEAD", { vertical = true, split = "botright" })
+		end
+
 		vim.keymap.set("n", "<leader>gl", gitsigns.toggle_linehl, { desc = "Gitsigns: toggle line highlight" })
 		vim.keymap.set("n", "<leader>gn", gitsigns.next_hunk, { desc = "Gitsigns: go to next hunk" })
 		vim.keymap.set("n", "<leader>gN", gitsigns.prev_hunk, { desc = "Gitsigns: go to prev hunk" })
@@ -22,6 +44,7 @@ return {
 			{ desc = "Gitsigns: toggle current line blame" }
 		)
 		vim.keymap.set("n", "<leader>gd", gitsigns.preview_hunk_inline, { desc = "Gitsigns: preview hunk line" })
+		vim.keymap.set("n", "<leader>gD", toggle_side_by_side_diff, { desc = "Gitsigns: toggle side-by-side diff" })
 		vim.keymap.set("n", "<leader>ga", function()
 			gitsigns.stage_buffer(function()
 				-- neo-tree's git_status source only auto-refreshes on `User FugitiveChanged`,
